@@ -16,6 +16,7 @@
 # Long
 # Location
 import numpy as np
+import time
 from ripser import ripser
 from persim import plot_diagrams
 import numpy as np
@@ -23,7 +24,8 @@ from ripser import Rips
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
+times=[]
+number_crimes=[]
 top_num=10
 dim1_col_list=[]
 dim2_col_list=[]
@@ -35,6 +37,7 @@ for x in range(0,top_num):
     dim2_col_list.append("dim2_value"+str(x))
     top_dim_1.append(0)
     top_dim_1.append(0)
+
 
 
 # print(dim1_col_list)
@@ -94,7 +97,10 @@ print(df)
 startDate = df.index[0] #seed the while loop, format Timestamp
 endDate=df.index[-1]
 
+
+
 while (startDate >= df.index[0]) & (startDate < df.index[-1]):
+
 
     stopDate = (startDate + pd.offsets.DateOffset(months=1))#stopDate also Timestamp
 
@@ -108,6 +114,7 @@ while (startDate >= df.index[0]) & (startDate < df.index[-1]):
 
 
     for district in districts:
+        start = time.time()
         top_dim_1 = [0] * top_num
         top_dim_2 = [0] * top_num
 
@@ -181,10 +188,16 @@ while (startDate >= df.index[0]) & (startDate < df.index[-1]):
 
             out_data=out_data.append(temp)
             print(out_data)
+            end = time.time()
+            times.append(end - start)
+            number_crimes.append(len(disDf))
+
+
 
     print(startDate)
     print(df.index[-1])
     print(df.index[0])
+
     startDate = stopDate
 
 
@@ -236,6 +249,7 @@ while (startDate >= df.index[0]) & (startDate < df.index[-1]):
 
 
     for district in districts:
+        start = time.time()
         top_dim_1 = [0] * top_num
         top_dim_2 = [0] * top_num
 
@@ -309,6 +323,9 @@ while (startDate >= df.index[0]) & (startDate < df.index[-1]):
 
             out_data=out_data.append(temp)
             print(out_data)
+            end = time.time()
+            times.append(end - start)
+            number_crimes.append(len(disDf))
 
     print(startDate)
     print(df.index[-1])
@@ -321,117 +338,13 @@ while (startDate >= df.index[0]) & (startDate < df.index[-1]):
 data=data.sort_values(by='OCCURRED_ON_DATE')
 out_data.to_csv("test_file.CSV")
 
-'''
 
-dim1_col_list=[]
-dim2_col_list=[]
-top_dim_1=[]
-top_dim_2=[]
+print(number_crimes)
+print(times)
+plt.plot(number_crimes,times,'ro')
 
-for x in range(0,top_num):
-    dim1_col_list.append("dim1_value"+str(x))
-    dim2_col_list.append("dim2_value"+str(x))
-    top_dim_1.append(0)
-    top_dim_1.append(0)
+plt.xlabel('Number of data points')
+plt.ylabel('run time in seconds')
+plt.show()
 
 
-out_data=[]
-out_data = pd.DataFrame(columns=['District', 'num_crime',  "num_dim1", *dim1_col_list, "num_dim2",*dim2_col_list])
-
-#print(out_data)
-# test_data = data.loc[mask]
-#
-# print(mask)
-
-df = test_data[['Lat','Long','DISTRICT']]
-df=df.dropna()
-districts = df['DISTRICT'].unique()
-print(districts)
-
-for district in districts:
-    top_dim_1 = [0] * top_num
-    top_dim_2 = [0] * top_num
-
-    disDf=df.loc[df['DISTRICT'] == district]
-    #df.replace([np.inf, -np.inf], 100)
-    #print(df)
-    #print(df[['Lat','Long']].values)
-    location=disDf[['Lat','Long']].values
-
-    diagrams = ripser(location)['dgms']
-
-    #plot_diagrams(diagrams, show=True)
-
-    #makes infi reasonable for regression
-    diagrams=np.array(diagrams)
-    diagrams[1][diagrams[1] >= 1E308] = 10
-    diagrams[0][diagrams[0] >= 1E308] = 10
-
-
-
-    # print(dim_1)
-    # print(dim_1[:,0].reshape(1,len(dim_1[:,0])))
-    #print(((dim_1[:,1]-dim_1[:,0]).reshape(1,len(dim_1[:,0]))).T)
-
-    dim_1 = diagrams[0]
-    per = ((dim_1[:, 1] - dim_1[:, 0]).reshape(1, len(dim_1[:, 0])))
-    sort_per = np.sort(per)
-    num_dim1 = sort_per.size
-    temp_top_dim_1 = np.nan_to_num(sort_per[0, len(sort_per.T) - top_num:len(sort_per.T)])
-    for i in range(0, len(temp_top_dim_1)):
-        top_dim_1[i] = temp_top_dim_1[i]
-
-    # print(top_dim_1)
-
-    dim_2 = diagrams[1]
-    per = ((dim_2[:, 1] - dim_2[:, 0]).reshape(1, len(dim_2[:, 0])))
-    sort_per = np.sort(per)
-    num_dim2 = sort_per.size
-    temp_top_dim_2 = np.nan_to_num(sort_per[0, len(sort_per.T) - top_num:len(sort_per.T)])
-    for i in range(0, len(temp_top_dim_2)):
-        top_dim_2[i] = temp_top_dim_2[i]
-    print(top_dim_2)
-
-    num_crime=len(disDf)
-    print(num_crime)
-
-    dat = [[district, num_crime, num_dim2, *top_dim_1, num_dim2, *top_dim_2]]
-    temp = pd.DataFrame(dat ,columns=['District', 'num_crime',  "num_dim1", *dim1_col_list, "num_dim2",*dim2_col_list])
-
-    print(temp)
-
-    out_data=out_data.append(temp)
-    print(out_data)
-
-out_data.to_csv("test_file.CSV")
-
-
-
-
-
-# print(np.sort(per).shape)
-#print()
-
-
-# print(len(sort_per.T))
-#
-# print(sort_per)
-# print(sort_per[0,30:40])
-#print(sort_per[0,len(sort_per.T)-10:len(sort_per.T)])
-
-
-# t_dim_1=np.concatenate((dim_1[:,0].reshape(1,len(dim_1[:,0])),(dim_1[:,1]-dim_1[:,0]).reshape(1,len(dim_1[:,0])))).T
-# print(t_dim_1[:,0])
-# plt.plot(t_dim_1[:,0],t_dim_1[:,1], 'o')
-# plt.show()
-
-#print(t_dim_1.T.reshape(dim_1.shape))
-# print(diagrams)
-# print(diagrams[1].shape)
-# print(diagrams[0].shape)
-
-# rips = Rips()
-
-
-
-'''
